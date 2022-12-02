@@ -1,0 +1,20 @@
+---
+title: "BDA - Project"
+author: 
+- Leo Laitinen
+- Marilla Malkki
+- Otso Laasonen
+output: 
+  pdf_document: 
+    toc: yes
+    toc_depth: 1
+urlcolor: blue
+---
+
+# Introduction
+This is a project report for BDA course of edition 2022
+
+# Problem description
+Our problem is how are tornado injuries related to the magnitude of the tornado in the US. Additionally we analyzed whether the state the tornado was in had impact. 
+Data was optained from kaggle.com, which provides free to use datasets for different purposes. The data contained a lot of extra columns that were unnecessary for our problem, and were hence trimmed.
+Naturally there are tons of analysises for tornadoes, as they have a huge impact on societies experiencing them. However we were unable to find any analysis using bayesian statistics for the relation of injuries and magnitude.

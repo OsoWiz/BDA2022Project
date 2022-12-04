@@ -289,7 +289,9 @@ A better formulation of our data would have perhaps functioned better than the t
 
 # Conclusion
 
+We made two linear regression models that were applied in predictions of average injuries caused by a torando. We noticed that the simple linear regression models were not fully able to predict the injuries. Extreme phenomena needs extremely well developed models for proper predictions.
 
+We learned that data analysis is a hard topic to excel at. The key of success is to find proper mathematical models such as correct probability distribution to represent the data. Additionally, the choice of priors, hierarchy in models and covariate selection can major vast effect on the results obtained in the analysis. We believe that the injuries caused by a tornado could be predicted properly with a better model. Thus, research in tornadoes and bayesian inference should be continued.
 
 # Self-reflection
 

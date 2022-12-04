@@ -12,10 +12,13 @@ urlcolor: blue
 ---
 
 # Introduction
-This is a project report for BDA course of edition 2022
+Tornadoes are rotating columns of air that have intrigued mankind for hundreds of years. They occur most numerous in the US where it is estimated that around 1200 tornadoes appear annually. They vary in size and intensity, with the largest, most extreme tornadoes reaching wind speeds of up to 480km/h.
+
+In this report, we take a look at the relation between tornadoes and the injuries caused by them in the United States.
+We will be using two types of linear models whose distributions we approximate with Stans default sampler. (Hamiltonian Monte Carlo with No U-turn Sampler)
 
 # Problem description
-Our problem is how are tornado injuries related to the magnitude of the tornado in the US. Additionally we analyzed whether the state the tornado was in had impact on the injuries. 
+We use Stan to see how are tornado injuries related to the magnitude of the tornado in the US. Additionally we analyzed whether the state the tornado was in had impact on the injuries. 
 Data was optained from kaggle.com, which provides free to use datasets for different purposes. The data contained a lot of extra columns that were unnecessary for our problem, and were hence trimmed.
 Naturally there are tons of analysises of tornadoes, as they have a huge impact on societies experiencing them. However we were unable to find any analysis using bayesian statistics for the relation of injuries and magnitude in the US.
 

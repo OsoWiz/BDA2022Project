@@ -747,3 +747,4 @@ Sometimes models just don't work the way you expect them to. There are so many p
 I learned a lot about plotting with R and how to visualize diagnostics for the models.
 
 ## Leo
+I learned coding in R and developing of Bayesian models in Stan.

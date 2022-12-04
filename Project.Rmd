@@ -35,6 +35,167 @@ This is the magnitude of the tornado, which was the covariate of our model.
 ## Averaged injuries
 Averaged injuries is a calculated variable that averages all the injuries by all tornadoes in a certain state and of certain magnitude.
 
+# Model
+
+We decided to try linear regression in our analysis. Our dataset contained information of tornadoes in the United States in years 1950-2021. We divided the dataset into groups by the state in which the torando occurred. Then we calculated the average injuries caused by tornadoes of a certain magnitude in each state. Our hypothesis was that the average of injuries was linearly proportional to the magnitude of a tornado.
+
+We developed to models for the linear regression: a pooled model and a hierarchial model. The pooled model can be applied if the injuries are considered to be indentically and independetly distributed between the states. The hierarchial model allows the injuries to be dependent on the state of the torando's occurence.
+
+Let $x_{ij}$ be the magnitude of a tornado in state $j$ and $\bar y_{ij}$ be the average of observed injuries caused by tornadoes of magnitude $x_ij$ in certain state. The magnitude of a tornado can have values $\{0,1,2,3,4,5\}$. However, tornadoes of magnitude 5 are very rare. Additionally, tornadoes occur in some states altogether only few times. We decided to filter the data such that we have the observations of the states where tornadoes of magnitude 0-4 have occurred at least once, which is totally 32 states.
+
+## Pooled model
+
+Mathematically, the pooled model was defined as 
+$$
+\bar y_{ij} \sim \textrm N(\alpha x_{ij} + \beta, \sigma)
+$$
+$$
+\alpha \sim \textrm N(0, 100)
+$$$$
+\beta \sim \textrm N(0, 100)
+$$$$
+\sigma \sim \textrm N(5, 100).
+$$
+That is, the average injuries is normally distributed with a mean value which is a linear function of the magnitude $x_{ij}$ of a tornado.
+
+## Hierarchical model
+
+The mathematical definition of the hirearchical model was $$
+\bar y_{ij} \sim \textrm N(\alpha_j x_{ij} + \beta_j, \sigma)
+$$$$
+\alpha_j \sim \textrm N(\mu_\alpha, \sigma_\alpha)
+$$$$
+\beta_j \sim \textrm N(\mu_\beta, \sigma_\beta)
+$$$$
+\mu_\alpha \sim \textrm N(0, 100)
+$$$$
+\sigma_\alpha \sim \textrm N(5, 100)
+$$$$
+\mu_\beta \sim \textrm N(0, 100)
+$$$$
+\sigma_\beta \sim \textrm N(5, 100)
+$$$$
+\sigma \sim \textrm N(5, 100).
+$$ Now for each state, we have own linear average parameters $\alpha_j$ and $\beta_j$ which are defined by normal distribution with hyper parameters $\mu_\alpha$, $\mu_\beta$, $\sigma_\alpha$ and $\sigma_\beta$. The hyper parameters are defined by normal hyper priors. Each of the states however have a common variance $\sigma$.
+
+## Priors
+
+We decided to use weakly informative normal priors for each (hyper) parameter. We tested many different prior distributions and parameters and got decent performance with the chosen normal priors. Some of the other priors caused for example divergence in HMC.
+
+We chose zero centered normal priors with a large standard deviation for parameters $\alpha$, $\beta$, $\mu_\alpha$ and $\mu_\beta$. We believe that the true parameter value would be quite close to zero but the wide prior distribution allows the parameters to converge to afar from zero. For standard deviations $\sigma$, $\sigma_\alpha$ and $\sigma_\beta$, we chose normal priors which had the mean parameter at 5. We believe that there is some variance between the observations so the standard deviation would be larger than zero. Again, the standard deviation of the priors were chosen quite large such that we get a weakly informative prior.
+
+## Code
+
+The Stan implementations of the models is shown below. The pooled model was implemented as
+```
+// Pooled linear model
+
+data {
+  int<lower=0> N;  // number of data points
+  vector[N] x;// Magnitude of a tornado
+  vector<lower=0>[N] y;// Injuries caused by a tornado
+  real pmualpha;//prior mean of alpha
+  real<lower=0> psalpha;//prior sd of alpha
+  real pmubeta;//prior mean of beta
+  real<lower=0> psbeta;//prior sd of beta
+  vector[6] xpred;
+}
+
+parameters {
+  real alpha;
+  real beta;
+  real<lower=0> sigma;
+}
+
+transformed parameters {
+  vector[N] mu = alpha*x + beta;
+}
+
+model {
+  alpha ~ normal(pmualpha, psalpha); //prior of alpha
+  beta ~ normal(pmubeta, psbeta); //prior of beta
+  sigma ~ normal(5, 100);
+  y ~ normal(mu, sigma);
+}
+
+```
+The hierarchical model is implemented as
+```
+data {
+  int<lower=0> N;  // number of data points
+  int<lower=0> J; // number of states
+  vector[J] x[N];// Magnitude of a tornado
+  vector<lower=0>[J] y[N];// Average injuries caused by a tornado
+  vector[5] xpred;
+}
+
+parameters {
+  real mualpha0;
+  real<lower=0> salpha0;
+  real mubeta0;
+  real<lower=0> sbeta0;
+  vector[J] alpha;
+  vector[J] beta;
+  real<lower=0> sigma;
+}
+
+transformed parameters {
+  vector[J] mu[N];
+  
+  for (n in 1:N) {
+    for (j in 1:J)
+      mu[n, j] = x[n,j]*alpha[j]+beta[j];
+  }
+}
+
+model {
+  mualpha0 ~ normal(0, 100);
+  salpha0 ~ normal(5, 100);;
+  mubeta0 ~ normal(0, 100);
+  sbeta0 ~ normal(5, 100);;
+  sigma ~ normal(5, 100);
+  
+  for (j in 1:J) {
+    alpha[j] ~ normal(mualpha0, salpha0); //prior of alpha
+    beta[j] ~ normal(mubeta0, sbeta0); //prior of beta
+    y[,j] ~ normal(mu[,j], sigma);
+  }
+}
+
+```
+The models were run with the script represented below
+```{r, results='hide', message=FALSE, warning=FALSE}
+data_pooled <- readRDS(file='~/notebooks/BDA/Project/data_pooled_ver2.Rda')
+data_hx <- readRDS(file='~/notebooks/BDA/Project/data_hierarchical_x_ver2.Rda')
+data_hy <- readRDS(file='~/notebooks/BDA/Project/data_hierarchical_y_ver2.Rda')
+
+# Fit pooled model
+pooled_model <- cmdstan_model(stan_file = "~/notebooks/BDA/Project/pooled_linear_model.stan")
+stan_data <- list(
+  N = nrow(data_pooled),
+  x = data_pooled$x,
+  y = data_pooled$y,
+  pmualpha = 0,
+  psalpha = 300,
+  pmubeta = 0,
+  psbeta = 100,
+  xpred = c(0,1,2,3,4,5)
+)
+fit_pooled <- pooled_model$sample(data = stan_data, refresh=1000)
+
+# Fit hierarchical model
+hierarchical_model <- cmdstan_model(stan_file = "~/notebooks/BDA/Project/hierarchical_linear_model.stan")
+stan_data <- list(
+  N = nrow(data_hy),
+  J = ncol(data_hy),
+  x = data_hx,
+  y = data_hy,
+  xpred = c(0,1,2,3,4)
+)
+fit_hierarchical <- hierarchical_model$sample(data = stan_data, refresh=1000)
+```
+That is, both models were run in Stan such that they had 4 chains with chain length of 2000 and warm-up length of 1000. With these options, we get overall 4000 draws from the distributions.
+
 # Discussion of issues and potential improvements
 One of the biggest pitfalls of our model was the lack of datapoints for our hierarchical model. Each state had only one average calculation per magnitude, and some magnitudes had no datapoints at all. (Set to zero in that case) This problem naturally did not occur the same way in pooled, hence why chains converged much better with that model.
 The relation between the magnitude and the injuries is not very linear, hence why linear model struggles with the predictions.

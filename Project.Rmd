@@ -216,6 +216,116 @@ fit_hierarchical <- hierarchical_model$sample(data = stan_data, refresh=1000)
 ```
 That is, both models were run in Stan such that they had 4 chains with chain length of 2000 and warm-up length of 1000. With these options, we get overall 4000 draws from the distributions.
 
+```{r}
+data_pooled <- readRDS(file='data_pooled_ver2.Rda')
+data_hx <- readRDS(file='data_hierarchical_x_ver2.Rda')
+data_hy <- readRDS(file='data_hierarchical_y_ver2.Rda')
+```
+
+### Pooled model:
+```{r echo = T, results = 'hide', warning=FALSE, message = FALSE}
+pooled_model <- cmdstan_model(stan_file = "project_pooled.stan")
+stan_data <- list(
+  N = nrow(data_pooled),
+  x = data_pooled$x,
+  y = data_pooled$y,
+  pmualpha = 0,
+  psalpha = 100,
+  pmubeta = 0,
+  psbeta = 1000,
+  xpred = c(0, 1, 2, 3, 4)
+)
+fit_pooled <- pooled_model$sample(data = stan_data, refresh=1000)
+
+draws_p <- fit_pooled$draws()
+```
+
+### Hierarchical model:
+```{r echo = T, results = 'hide', warning=FALSE, message = FALSE}
+hierarchical_model <- cmdstan_model(stan_file = "project_hierarchical.stan")
+stan_data <- list(
+  N = nrow(data_hy),
+  J = ncol(data_hy),
+  x = data_hx,
+  y = data_hy,
+  pmualpha = 0,
+  psalpha = 100,
+  pmubeta = 0,
+  psbeta = 1000
+)
+fit_hierarchical <- hierarchical_model$sample(data = stan_data, refresh=1000)
+
+draws_h <- fit_hierarchical$draws()
+```
+
+
+# DIAGNOSTICS:
+
+## 7. Convergence diagnostics
+
+First, $\hat{R}$ analysis from the summaries of the models. The values are good is they're close to 1 (< 1.01). ($\hat{R}$ values are retrieved from the stan model with summary(). The computation is done with the newer, rank-based method proposed in Vehtari et al. (2021))
+
+Pooled:
+```{r}
+summary_p <- fit_pooled$summary()
+summary_p[1:4,c("variable", "rhat")]
+```
+
+Based on the values in the pooled model summary (rhat is smaller than 1.01), the variance between chains is very small in the pooled model and the chains likely converge. 
+
+Hierarchical:
+```{r}
+summary_h <- fit_hierarchical$summary()
+print(summary_h[1:10,c("variable", "rhat")], n=10)
+print(summary_h[65:70,c("variable", "rhat")], n=6)
+```
+Many rhat values in the hierarchical model's summary are close to the threshold (1.01), but many are above it. This suggests that the chains might not converge and they sample slightly different distributions. Further analysis is needed.
+
+The chains convergence issues can be visualized with traceplots. Sbeta0 and alpha[5] are shown as examples. It's also possible to look at how the distributions look for different chains. Depending on the run, they resemblance changes, but the point is that the distributions of each chain can look visibly different.
+```{r}
+color_scheme_set("mix-blue-red")
+trace <- mcmc_trace(draws_h, pars = c("sbeta0", "alpha[5]"), n_warmup = 100) 
+color_scheme_set("mix-teal-pink")
+overlay <- mcmc_dens_overlay(draws_h, pars = c("sbeta0", "alpha[5]"))
+
+grid.arrange(trace, overlay, nrow = 2)
+```
+
+
+Next, the effective sample sizes (ESS, or n_eff) for both models. This information is also retrieved from with summary(). As can be seen from the tables, stan actually produces two ESS values, ess_tail for for the sampling efficiency in the tails of the posterior and ess_bulk for sampling efficiency in the bulk of the posterior. These are used since they provide more information than a generic ESS and are easily available.
+
+ESS for pooled model:
+```{r}
+summary_p[1:4,c("variable", "ess_bulk", "ess_tail")]
+```
+
+The pooled model's ESS values are good, all above 1500. This supports confidence in the sampling, since it means that the effective sample size is large and the draws are used.
+
+ESS for hierarchical model:
+```{r}
+print(summary_h[1:10,c("variable", "ess_bulk", "ess_tail")], n=10)
+print(summary_h[65:70,c("variable", "ess_bulk", "ess_tail")], n=6)
+```
+
+The hierarchical model's ESS values are also satisfactory, according to the diagnostics. It can be noted, that the EES values for alphas seem to be clearly larger than the EES values of betas. 
+
+Especially sbeta0 (a hyperparameter) seems to have smaller EES and it also had the largest rhat value. While the ESS is still described as satisfactory, together with the rhat it does suggest there is a small issue with the sampling.
+
+
+Then, divergences and tree depth. The diagnostics of the models are retrieved by cmdstan_diagnose(). As the Rhat values and ESS were already discussed, it's sufficient to just look at the first two sections.
+
+Pooled model: Based on the diagnostics below, there are no divergences and all treedepths are small enough.
+```{r}
+fit_pooled$cmdstan_diagnose()
+```
+
+Hierarchical model: The diagnostics below show that treedepths are fine, but there are some divergences (about 7% of transitions). This suggest that there might be a problem with HMC being unable to fully explore the posterior distribution. Taking into account the larger rhat values, it's likely the chains in this model don't converge fully.
+
+```{r}
+fit_hierarchical$cmdstan_diagnose()
+```
+
+
 ## Posterior predictive check
 
 We generated predictive values from the posterior distributions for both models. To make a predictive check, we compare the histograms of the real observed data and predictive data with each magnitude value separately. The observed values and generated draws are collected to data frames `df_y`, `df_p` and `df_h`. The histograms are presented below
@@ -280,6 +390,341 @@ grid.arrange(yhist, phist, hhist, nrow = 3)
 As we can see from the plots, the observed data does not have the shape of a normal distribution. However, we can make some deduction of the predictive draws with these histograms. As we can see, the average injuries increase as the magnitude of tornadoes increase. With the smaller magnitudes, the observed injuries were close to zero on average. The predictive draws for both models have the mean value also quite close to zero when the magnitude was small. With magnitudes 3 and 4, the injuries are evidently greater than zero on average by the observations. Again, the models have predicted this and the mean of the distribution is clearly larger. 
 
 Injuries caused by a tornado is a quantity that has only non-negative values. Our predictions however have also negative draws for average injuries. Therefore, we can say that the predictions are not quite optimal with this model.
+
+## 9. Predictive performance assessment
+
+Predictive performance assessment wasn't conducted for the models because the goal isn't classifying so accuracy wouldn't make any sense. Splitting the data to training and testing was considered (to compute MSE for predicted values) but decided against it. The idea is to model the number of injuries and since the linear models don't fit the data very well, getting figures for MSE wouldn't have provided more value to the analysis. 
+
+
+## 10. Sensitivity analysis with respect to prior choices 
+
+First the sensitivity to priors is tested for the pooled model. Three different priors are tested: 
+
+1. Uniform priors for alpha and beta: $uniform(0, 120)$ \
+2. Inv_chi_square for sigma: inv_chi_square(0.1) \
+3. Smaller sd for alpha and beta: $normal(mean, 10)$ instead of the previous 100 and 1000 \
+
+Other values stay the same when priors are changed.
+
+Below the models are fitted and sampling is done. Then the new draws are used to see how the test prios affect alpha and beta. Plots are shown for all.
+
+Three pooled models are fitted with the new priors, code hidden for readability. 
+```{r echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+summary <- fit_pooled$summary()
+alpha_mean <- summary[[2,c("mean")]]    #check this well !!!
+beta_mean <- summary[[3,c("mean")]]
+
+# draws with test priors
+pooled_model1 <- cmdstan_model(stan_file = "project_pooled_v1.stan")
+stan_data <- list(
+  N = nrow(data_pooled),
+  x = data_pooled$x,
+  y = data_pooled$y,
+  xpred = c(0, 1, 2, 3, 4)
+)
+fit_pooled1 <- pooled_model1$sample(data = stan_data, refresh=1000)
+
+pooled_model2 <- cmdstan_model(stan_file = "project_pooled_v2.stan")
+stan_data <- list(
+  N = nrow(data_pooled),
+  x = data_pooled$x,
+  y = data_pooled$y,
+  pmualpha = 0,
+  psalpha = 100,
+  pmubeta = 0,
+  psbeta = 1000,
+  xpred = c(0, 1, 2, 3, 4)
+)
+fit_pooled2 <- pooled_model2$sample(data = stan_data, refresh=1000)
+
+pooled_model3 <- cmdstan_model(stan_file = "project_pooled.stan")
+stan_data <- list(
+  N = nrow(data_pooled),
+  x = data_pooled$x,
+  y = data_pooled$y,
+  pmualpha = 0,
+  psalpha = 10,
+  pmubeta = 0,
+  psbeta = 10,
+  xpred = c(0, 1, 2, 3, 4)
+)
+fit_pooled3 <- pooled_model3$sample(data = stan_data, refresh=1000)
+
+p_draws1 <- fit_pooled1$draws()
+p_draws2 <- fit_pooled2$draws()
+p_draws3 <- fit_pooled3$draws()
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+# means with the test priors for alpha
+m1 <- fit_pooled1$summary()[[2,c("mean")]] 
+m2 <- fit_pooled2$summary()[[2,c("mean")]] 
+m3 <- fit_pooled3$summary()[[2,c("mean")]] 
+```
+  
+The plots below visualize how the priors affect the distribution of alpha, the dotted line showing the original model's mean in all plots, while the blue displays the new one.
+  
+```{r echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+color_scheme_set("teal")
+
+predict_hist_orig <- mcmc_hist(draws_p, pars = c('alpha'), binwidth=1, alpha=0.7) +   
+  theme(aspect.ratio = 0.4) +
+  geom_vline(xintercept = alpha_mean, linetype = 5, size = 0.9) + 
+  ggtitle("Original model")
+
+# first
+predict_hist1 <- mcmc_hist(p_draws1, pars = c('alpha'), binwidth=0.7, alpha=0.7) +   #switch draws!!
+  theme(aspect.ratio = 0.4) +
+  geom_vline(xintercept = alpha_mean, linetype = 5, size = 0.9) + 
+  geom_vline(xintercept = m1, linetype = 1, color = "blue", size = 0.9) +
+  ggtitle("1. Uniform priors")
+
+#second
+predict_hist2 <- mcmc_hist(p_draws2, pars = c('alpha'), binwidth=1, alpha=0.7) +    #switch draws!!
+  theme(aspect.ratio = 0.4) +
+  geom_vline(xintercept = alpha_mean, linetype = 5, size = 0.9) + 
+  geom_vline(xintercept = m2, linetype = 1, color = "blue", size = 0.9) +
+  ggtitle("2. Weakly informative prior for sigma")
+
+#third
+predict_hist3 <- mcmc_hist(p_draws3, pars = c('alpha'), binwidth=1, alpha=0.7) +   #switch draws!!
+  theme(aspect.ratio = 0.4) +
+  geom_vline(xintercept = alpha_mean, linetype = 5, size = 0.9) + 
+  geom_vline(xintercept = m3, linetype = 1, color = "blue", size = 0.9) +
+  ggtitle("3. Informative priors with sd 10")
+
+grid.arrange(predict_hist_orig, predict_hist1, predict_hist2, predict_hist3, nrow = 2, ncol = 2)
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+# means with the test priors for beta
+m1 <- fit_pooled1$summary()[[3,c("mean")]] 
+m2 <- fit_pooled2$summary()[[3,c("mean")]] 
+m3 <- fit_pooled3$summary()[[3,c("mean")]] 
+```
+
+These plots show the changes to the distribution of beta. Once again, the dotted line shows the mean of beta in the original model while the teal shows the new mean.
+
+```{r echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+color_scheme_set("red")
+
+predict_hist_orig <- mcmc_hist(draws_p, pars = c('beta'), binwidth=2, alpha=0.7) +   
+  theme(aspect.ratio = 0.4) +
+  geom_vline(xintercept = beta_mean, linetype = 5, size = 0.9) + 
+  ggtitle("Original model")
+
+# first
+predict_hist1 <- mcmc_hist(p_draws1, pars = c('beta'), binwidth=2, alpha=0.7) +   #switch draws!!
+  theme(aspect.ratio = 0.4) +
+  geom_vline(xintercept = beta_mean, linetype = 5, size = 0.9) + 
+  geom_vline(xintercept = m1, linetype = 1, color = "cyan3", size = 0.9) +
+  ggtitle("1. Uniform priors")
+
+#second
+predict_hist2 <- mcmc_hist(p_draws2, pars = c('beta'), binwidth=2, alpha=0.7) +    #switch draws!!
+  theme(aspect.ratio = 0.4) +
+  geom_vline(xintercept = beta_mean, linetype = 5, size = 0.9) + 
+  geom_vline(xintercept = m2, linetype = 1, color = "cyan3", size = 0.9) +
+  ggtitle("2. Weakly informative prior for sigma")
+
+#third
+predict_hist3 <- mcmc_hist(p_draws3, pars = c('beta'), binwidth=2, alpha=0.7) +   #switch draws!!
+  theme(aspect.ratio = 0.4) +
+  geom_vline(xintercept = beta_mean, linetype = 5, size = 0.9) + 
+  geom_vline(xintercept = m3, linetype = 1, color = "cyan3", size = 0.9) +
+  ggtitle("3. Informative priors with sd 10")
+
+grid.arrange(predict_hist_orig, predict_hist1, predict_hist2, predict_hist3, nrow = 2, ncol = 2)
+```
+From the plots, it seems that the pooled model isn't very sensitive to different priors if the other prior is weakly informative (like the 2. prior). Changing from weakly informative to uniform or very restricted sd (1. and 3.) has a clear effect: making the mean of alpha lower and the mean of sigma higher.
+
+
+
+Next, sensitivity to priors for the hierarchical model. Since there are so many alphas and betas in the hierarchical model (32 states in the data, each having their own), sensitivity to priors will be visualized through two randomly selected ones: alpha[5] and beta[21]. We assume that they are representative in how the priors affect the results in general.
+
+Again, three different priors are tested: 
+
+1. Uniform priors for hyperparameters of alpha and beta: $uniform(0, 120)$ \
+2. Inv_chi_square for sigma: inv_chi_square(0.1) \
+3. Smaller sd for hyperparameters of alpha and beta: $normal(mean, 10)$ instead of the previous 100 \
+
+Three hierarchical models are fitted with the new priors, code hidden for readability. 
+```{r echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+summary <- fit_hierarchical$summary()
+alpha_mean <- summary[[10,c("mean")]]    #check this well !!!
+beta_mean <- summary[[58,c("mean")]]
+
+# draws with test priors
+hie_model1 <- cmdstan_model(stan_file = "project_hierarchical_v1.stan")
+stan_data <- list(
+  N = nrow(data_hy),
+  J = ncol(data_hy),
+  x = data_hx,
+  y = data_hy,
+  pmualpha = 0,
+  psalpha = 100,
+  pmubeta = 0,
+  psbeta = 1000
+)
+fit_hierarchical1 <- hie_model1$sample(data = stan_data, refresh=1000)
+
+hie_model2 <- cmdstan_model(stan_file = "project_hierarchical_v2.stan")
+stan_data <- list(
+  N = nrow(data_hy),
+  J = ncol(data_hy),
+  x = data_hx,
+  y = data_hy,
+  pmualpha = 0,
+  psalpha = 100,
+  pmubeta = 0,
+  psbeta = 1000
+)
+fit_hierarchical2 <- hie_model2$sample(data = stan_data, refresh=1000)
+
+hie_model3 <- cmdstan_model(stan_file = "project_hierarchical_v3.stan")
+stan_data <- list(
+  N = nrow(data_hy),
+  J = ncol(data_hy),
+  x = data_hx,
+  y = data_hy,
+  pmualpha = 0,
+  psalpha = 100,
+  pmubeta = 0,
+  psbeta = 1000
+)
+fit_hierarchical3 <- hie_model3$sample(data = stan_data, refresh=1000)
+
+h_draws1 <- fit_hierarchical1$draws()
+h_draws2 <- fit_hierarchical2$draws()
+h_draws3 <- fit_hierarchical3$draws()
+```
+
+```{r echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+# means with the test priors for alpha
+m1 <- fit_hierarchical1$summary()[[10,c("mean")]] 
+m2 <- fit_hierarchical2$summary()[[10,c("mean")]] 
+m3 <- fit_hierarchical3$summary()[[10,c("mean")]] 
+```
+
+The plots below visualize how the priors affect the distribution of alpha[5].
+
+```{r echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+color_scheme_set("teal")
+
+predict_hist_orig <- mcmc_hist(draws_h, pars = c('alpha[5]'), binwidth=2, alpha=0.7) +   
+  theme(aspect.ratio = 0.4) +
+  geom_vline(xintercept = alpha_mean, linetype = 5, size = 0.9) + 
+  ggtitle("Original model")
+
+# first
+predict_hist1 <- mcmc_hist(h_draws1, pars = c('alpha[5]'), binwidth=2, alpha=0.7) +   #switch draws!!
+  theme(aspect.ratio = 0.4) +
+  geom_vline(xintercept = alpha_mean, linetype = 5, size = 0.9) + 
+  geom_vline(xintercept = m1, linetype = 1, color = "blue", size = 0.9) +
+  ggtitle("1. Uniform priors")
+
+#second
+predict_hist2 <- mcmc_hist(h_draws2, pars = c('alpha[5]'), binwidth=2, alpha=0.7) +    #switch draws!!
+  theme(aspect.ratio = 0.4) +
+  geom_vline(xintercept = alpha_mean, linetype = 5, size = 0.9) + 
+  geom_vline(xintercept = m2, linetype = 1, color = "blue", size = 0.9) +
+  ggtitle("2. Weakly informative prior for sigma")
+
+#third
+predict_hist3 <- mcmc_hist(h_draws3, pars = c('alpha[5]'), binwidth=2, alpha=0.7) +   #switch draws!!
+  theme(aspect.ratio = 0.4) +
+  geom_vline(xintercept = alpha_mean, linetype = 5, size = 0.9) + 
+  geom_vline(xintercept = m3, linetype = 1, color = "blue", size = 0.9) +
+  ggtitle("3. Informative priors with sd 10")
+
+grid.arrange(predict_hist_orig, predict_hist1, predict_hist2, predict_hist3, nrow = 2, ncol = 2)
+```
+```{r echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+# means with the test priors for beta
+m1 <- fit_hierarchical1$summary()[[58,c("mean")]] 
+m2 <- fit_hierarchical2$summary()[[58,c("mean")]] 
+m3 <- fit_hierarchical3$summary()[[58,c("mean")]] 
+```
+
+These plots show the changes to the distribution of beta[21].
+
+```{r echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+color_scheme_set("red")
+
+predict_hist_orig <- mcmc_hist(draws_h, pars = c('beta[21]'), binwidth=3, alpha=0.7) +   
+  theme(aspect.ratio = 0.4) +
+  geom_vline(xintercept = beta_mean, linetype = 5, size = 0.9) + 
+  ggtitle("Original model")
+
+# first
+predict_hist1 <- mcmc_hist(h_draws1, pars = c('beta[21]'), binwidth=2, alpha=0.7) +   #switch draws!!
+  theme(aspect.ratio = 0.4) +
+  geom_vline(xintercept = beta_mean, linetype = 5, size = 0.9) + 
+  geom_vline(xintercept = m1, linetype = 1, color = "cyan3", size = 0.9) +
+  ggtitle("1. Uniform priors")
+
+#second
+predict_hist2 <- mcmc_hist(h_draws2, pars = c('beta[21]'), binwidth=3, alpha=0.7) +    #switch draws!!
+  theme(aspect.ratio = 0.4) +
+  geom_vline(xintercept = beta_mean, linetype = 5, size = 0.9) + 
+  geom_vline(xintercept = m2, linetype = 1, color = "cyan3", size = 0.9) +
+  ggtitle("2. Weakly informative prior for sigma")
+
+#third
+predict_hist3 <- mcmc_hist(h_draws3, pars = c('beta[21]'), binwidth=2, alpha=0.7) +   #switch draws!!
+  theme(aspect.ratio = 0.4) +
+  geom_vline(xintercept = beta_mean, linetype = 5, size = 0.9) + 
+  geom_vline(xintercept = m3, linetype = 1, color = "cyan3", size = 0.9) +
+  ggtitle("3. Informative priors with sd 10")
+
+grid.arrange(predict_hist_orig, predict_hist1, predict_hist2, predict_hist3, nrow = 2, ncol = 2)
+```
+From the plots, it can be seen that the hierarchical model is perhaps a bit less sensitive to priors in general. Of course, here only priors of hyperparameters were changed. Again, the weakly informative prior (2.) had very little effect. Uniform and smaller sd did affect the means and distributions clearly, so the hierarchical model is also somewhat sensitive to the choice of prior.
+
+
+
+## Model comparison with LOO-CV
+
+Pooled model: PSIS-LOO elpd values and the $\hat{k}$-values
+```{r warning=FALSE}
+loo_pooled <- fit_pooled$loo()
+frame <- as.data.frame(loo_pooled$estimates)
+elpd <- frame["elpd_loo",]
+elpd
+pareto_k_table(loo_pooled)
+```
+So the pareto k values can be seen from the table, the elpd is roughly: `r toString(signif(elpd$Estimate, 2))`
+
+Hierarchical model: PSIS-LOO elpd values and the $\hat{k}$-values
+```{r warning=FALSE}
+loo_hierarchical <- fit_hierarchical$loo()
+frame <- as.data.frame(loo_hierarchical$estimates)
+elpd <- frame["elpd_loo",]
+elpd
+pareto_k_table(loo_hierarchical)
+```
+So the pareto k values can be seen from the table, the elpd is roughly: `r toString(signif(elpd$Estimate, 2))`
+
+As can be seen from the tables and the plots, the pooled model has generally very good pareto k values (below 0.5). This means that the PSIS-LOO estimate is reliable.
+
+The hierarchical model is worse in this regard, having mostly good and ok values. It does also have some bad and very bad values (values above 0.7 and 1), which suggests that the PSIS-LOO models for the hierarchical model might be too optimistic.
+
+Visualization:
+
+```{r echo=FALSE,warning=FALSE,message=FALSE,error=FALSE, results='hide',fig.keep='all'}
+par(mfrow=c(1,2))
+plot(loo_pooled, main = "Pooled model")
+plot(loo_hierarchical, main = "Hierarchical model")
+```
+
+
+Finally compare the models based on the PSIS-LOO values:
+```{r}
+comp_p_to_h <- loo_compare(loo_pooled, loo_hierarchical)  
+comp_p_to_h
+```
+
+The results show that model2, meaning the hierarchical model, has higher PSIS-LOO and thus should be selected if it were the only thing to consider. However, the pareto k values make the reliability of the PSIS-LOO estimate for the hierarchical model questionable. Considering that this model also had some convergence issues, the pooled model might be a better choice.
 
 # Discussion of issues and potential improvements
 One of the biggest pitfalls of our model was the lack of datapoints for our hierarchical model. Each state had only one average calculation per magnitude, and some magnitudes had no datapoints at all. (Set to zero in that case) This problem naturally did not occur the same way in pooled, hence why chains converged much better with that model.

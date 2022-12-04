@@ -43,3 +43,7 @@ A better formulation of our data would have perhaps functioned better than the t
 
 ## Otso
 Sometimes models just don't work the way you expect them to. There are so many parameters and variables that can be used and considered that an exhaustive analysis is rather difficult.
+
+## Marilla
+
+## Leo

@@ -32,7 +32,10 @@ This is the magnitude of the tornado, which was the covariate of our model.
 ## Averaged injuries
 Averaged injuries is a calculated variable that averages all the injuries by all tornadoes in a certain state and of certain magnitude.
 
+# Discussion of issues and potential improvements
+One of the biggest pitfalls of our model was the lack of datapoints for our hierarchical model. Each state had only one average calculation per magnitude, and some magnitudes had no datapoint at all. (Set to zero in that case) This problem naturally did not occur the same way in pooled, hence why chains converged way better with that model.
 
+A better formulation of our data would have perhaps functioned better than the this one. Some model that would have given more datapoints per grouping could have gotten more out of it.
 
 # Conclusion
 

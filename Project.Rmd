@@ -15,13 +15,13 @@ urlcolor: blue
 This is a project report for BDA course of edition 2022
 
 # Problem description
-Our problem is how are tornado injuries related to the magnitude of the tornado in the US. Additionally we analyzed whether the state the tornado was in had impact. 
+Our problem is how are tornado injuries related to the magnitude of the tornado in the US. Additionally we analyzed whether the state the tornado was in had impact on the injuries. 
 Data was optained from kaggle.com, which provides free to use datasets for different purposes. The data contained a lot of extra columns that were unnecessary for our problem, and were hence trimmed.
-Naturally there are tons of analysises for tornadoes, as they have a huge impact on societies experiencing them. However we were unable to find any analysis using bayesian statistics for the relation of injuries and magnitude.
+Naturally there are tons of analysises of tornadoes, as they have a huge impact on societies experiencing them. However we were unable to find any analysis using bayesian statistics for the relation of injuries and magnitude in the US.
 
 # Data
 
-The original dataset had 29 columns and 68829 rows. These were condensed into 3 variables of interest by removing unnecessary fields and combining our variable of interest by state and magnitude.
+The original dataset had 29 columns and 68829 rows. These were condensed into 3 variables of interest by removing unnecessary fields and averaging injuries by state and magnitude.
 
 ## State
 State tells the state in the US in which the tornado happened. This parameter functioned as the grouping in our hierarchical model.
@@ -33,9 +33,10 @@ This is the magnitude of the tornado, which was the covariate of our model.
 Averaged injuries is a calculated variable that averages all the injuries by all tornadoes in a certain state and of certain magnitude.
 
 # Discussion of issues and potential improvements
-One of the biggest pitfalls of our model was the lack of datapoints for our hierarchical model. Each state had only one average calculation per magnitude, and some magnitudes had no datapoint at all. (Set to zero in that case) This problem naturally did not occur the same way in pooled, hence why chains converged way better with that model.
+One of the biggest pitfalls of our model was the lack of datapoints for our hierarchical model. Each state had only one average calculation per magnitude, and some magnitudes had no datapoints at all. (Set to zero in that case) This problem naturally did not occur the same way in pooled, hence why chains converged much better with that model.
+The relation between the magnitude and the injuries is not very linear, hence why linear model struggles with the predictions.
 
-A better formulation of our data would have perhaps functioned better than the this one. Some model that would have given more datapoints per grouping could have gotten more out of it.
+A better formulation of our data would have perhaps functioned better than the this one. Some model that would have given more datapoints per grouping could have gotten more out of it. That could have potentially fixed the linearity problem as well.
 
 # Conclusion
 

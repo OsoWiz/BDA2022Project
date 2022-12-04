@@ -37,12 +37,12 @@ We will be using two types of linear models whose distributions we approximate w
 
 # Problem description
 We use Stan to see how are tornado injuries related to the magnitude of the tornado in the US. Additionally we analyzed whether the state the tornado was in had impact on the injuries. 
-Data was optained from kaggle.com, which provides free to use datasets for different purposes. The data contained a lot of extra columns that were unnecessary for our problem, and were hence trimmed.
-Naturally there are tons of analysises of tornadoes, as they have a huge impact on societies experiencing them. However we were unable to find any analysis using bayesian statistics for the relation of injuries and magnitude in the US.
+Data was obtained from 'kaggle.com', which provides free to use datasets for different purposes. The data contained a lot of extra columns that were unnecessary for our problem, and were hence trimmed.
+Naturally there are tons of analyses of tornadoes, as they have a huge impact on societies experiencing them. However we were unable to find any analysis using Bayesian statistics for the relation of injuries and magnitude in the US.
 
 # Data
 
-The original dataset had 29 columns and 68829 rows. These were condensed into 3 variables of interest by removing unnecessary fields and averaging injuries by state and magnitude.
+Our dataset contained information of tornadoes in the United States in years 1950-2021. We divided the dataset into groups by the state in which the tornado occurred. Then we calculated the average injuries caused by tornadoes of a certain magnitude in each state. The original data had 29 columns and 68829 rows. After the aforementioned calculation we were left with 3 variables of interest.
 
 ## State
 State tells the state in the US in which the tornado happened. This parameter functioned as the grouping in our hierarchical model.
@@ -55,9 +55,9 @@ Averaged injuries is a calculated variable that averages all the injuries by all
 
 # Model
 
-We decided to try linear regression in our analysis. Our dataset contained information of tornadoes in the United States in years 1950-2021. We divided the dataset into groups by the state in which the torando occurred. Then we calculated the average injuries caused by tornadoes of a certain magnitude in each state. Our hypothesis was that the average of injuries was linearly proportional to the magnitude of a tornado.
+We decided to try linear regression in our analysis after transforming our dataset as described in the previous section. Our hypothesis was that the average of injuries was linearly proportional to the magnitude of a tornado.
 
-We developed to models for the linear regression: a pooled model and a hierarchial model. The pooled model can be applied if the injuries are considered to be indentically and independetly distributed between the states. The hierarchial model allows the injuries to be dependent on the state of the torando's occurence.
+We developed to models for the linear regression: a pooled model and a hierarchical model. The pooled model can be applied if the injuries are considered to be identically and independently distributed between the states. The hierarchical model allows the injuries to be dependent on the state of the tornado's occurrence.
 
 Let $x_{ij}$ be the magnitude of a tornado in state $j$ and $\bar y_{ij}$ be the average of observed injuries caused by tornadoes of magnitude $x_ij$ in certain state. The magnitude of a tornado can have values $\{0,1,2,3,4,5\}$. However, tornadoes of magnitude 5 are very rare. Additionally, tornadoes occur in some states altogether only few times. We decided to filter the data such that we have the observations of the states where tornadoes of magnitude 0-4 have occurred at least once, which is totally 32 states.
 

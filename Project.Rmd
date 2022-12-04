@@ -27,10 +27,10 @@ Naturally there are tons of analysises of tornadoes, as they have a huge impact 
 The original dataset had 29 columns and 68829 rows. These were condensed into 3 variables of interest by removing unnecessary fields and averaging injuries by state and magnitude.
 
 ## State
-State tells the state in the US in which the tornado happened. This parameter functioned as the grouping in our hierarchical model.
+State tells the state in the US in which the tornado happened. This parameter functions as the grouping in our hierarchical model.
 
 ## Magnitude
-This is the magnitude of the tornado, which was the covariate of our model. 
+This is the magnitude of the tornado on the enhanced fujita scale, which is based on the windspeed of the tornade. It is the covariate of our model.
 
 ## Averaged injuries
 Averaged injuries is a calculated variable that averages all the injuries by all tornadoes in a certain state and of certain magnitude.
@@ -200,7 +200,7 @@ That is, both models were run in Stan such that they had 4 chains with chain len
 One of the biggest pitfalls of our model was the lack of datapoints for our hierarchical model. Each state had only one average calculation per magnitude, and some magnitudes had no datapoints at all. (Set to zero in that case) This problem naturally did not occur the same way in pooled, hence why chains converged much better with that model.
 The relation between the magnitude and the injuries is not very linear, hence why linear model struggles with the predictions.
 
-A better formulation of our data would have perhaps functioned better than the this one. Some model that would have given more datapoints per grouping could have gotten more out of it. That could have potentially fixed the linearity problem as well.
+A better formulation of our data would have perhaps functioned better than this one. Some model that would have given more datapoints per grouping could have gotten more out of it. That could have potentially fixed the linearity problem as well.
 
 # Conclusion
 

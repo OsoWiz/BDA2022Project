@@ -40,7 +40,7 @@ Next up we will describe the problem in more detail, and after that we will expl
 # Problem description
 We use Stan to see how are tornado injuries related to the magnitude of the tornado in the US. Additionally we analyzed whether the state the tornado was in had impact on the injuries. 
 Data was obtained from 'kaggle.com', which provides free to use datasets for different purposes. The data contained a lot of extra columns that were unnecessary for our problem, and were hence trimmed.
-Naturally there are tons of analyses of tornadoes, as they have a huge impact on societies experiencing them. However we were unable to find any analysis using Bayesian statistics for the relation of injuries and magnitude in the US.
+Naturally there are tons of analyses of tornadoes, as they have a huge impact on societies experiencing them. However we were unable to find any analysis using bayesian statistics for the relation of injuries and magnitude in the US.
 
 # Data
 
@@ -289,7 +289,7 @@ A better formulation of our data would have perhaps functioned better than the t
 
 # Conclusion
 
-We made two linear regression models that were applied in predictions of average injuries caused by a torando. We noticed that the simple linear regression models were not fully able to predict the injuries. Extreme phenomena needs extremely well developed models for proper predictions.
+We made two linear regression models that were applied in predictions of average injuries caused by a tornado. We noticed that the simple linear regression models were not fully able to predict the injuries. Extreme phenomena needs extremely well developed models for proper predictions.
 
 We learned that data analysis is a hard topic to excel at. The key of success is to find proper mathematical models such as correct probability distribution to represent the data. Additionally, the choice of priors, hierarchy in models and covariate selection can major vast effect on the results obtained in the analysis. We believe that the injuries caused by a tornado could be predicted properly with a better model. Thus, research in tornadoes and bayesian inference should be continued.
 

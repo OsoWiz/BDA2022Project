@@ -29,39 +29,39 @@ library(rprojroot)
 SEED <- 48927
 ```
 
-# Introduction
+# 1. Introduction
 Tornadoes are rotating columns of air that have intrigued mankind for hundreds of years. They occur most numerous in the US where it is estimated that around 1200 tornadoes appear annually. They vary in size and intensity, with the largest, most extreme tornadoes reaching wind speeds of up to 480km/h.
 
 In this report, we take a look at the relation between tornadoes and the injuries caused by them in the United States.
 We will be using two types of linear models whose distributions we approximate with Stans default sampler. (Hamiltonian Monte Carlo with No U-turn Sampler)
 
-Next up we will describe the problem in more detail, and after that we will explain the dataset. The models are described in section 4, followed by converge diagnostics and posterior predictive checks. In chapter 7 we will move onto sensitivity analysis and model comparison. Finally, we discuss potential improvements and the conclusions we arrived to based on the results we obtained. The report concludes with self- reflection as its final chapter.
+Next up we will describe the problem in more detail, and after that we will explain the dataset. The models are described in section 3, followed by converge diagnostics and posterior predictive checks. In chapter 10 we will move onto sensitivity analysis and then to model comparison. Finally, we discuss potential improvements and the conclusions we arrived to based on the results we obtained. The report concludes with self- reflection as its final chapter.
 
-# Problem description
+# 2. Data and the problem
 We use Stan to see how are tornado injuries related to the magnitude of the tornado in the US. Additionally we analyzed whether the state the tornado was in had impact on the injuries. 
 Data was obtained from 'kaggle.com', which provides free to use datasets for different purposes. The data contained a lot of extra columns that were unnecessary for our problem, and were hence trimmed.
 Naturally there are tons of analyses of tornadoes, as they have a huge impact on societies experiencing them. However we were unable to find any analysis using bayesian statistics for the relation of injuries and magnitude in the US.
 
-# Data
+## Data
 
 Our dataset contained information of tornadoes in the United States in years 1950-2021. We divided the dataset into groups by the state in which the tornado occurred. Then we calculated the average injuries caused by tornadoes of a certain magnitude in each state. The original data had 29 columns and 68829 rows. After the aforementioned calculation we were left with 3 variables of interest.
 
-## State
+### State
 State tells the state in the US in which the tornado happened. This parameter functioned as the grouping in our hierarchical model.
 
-## Magnitude
+### Magnitude
 This is the magnitude of the tornado, which was the covariate of our model. 
 
-## Averaged injuries
+### Averaged injuries
 Averaged injuries is a calculated variable that averages all the injuries by all tornadoes in a certain state and of certain magnitude.
 
-# Model
+# 3. Model
 
 We decided to try linear regression in our analysis after transforming our dataset as described in the previous section. Our hypothesis was that the average of injuries was linearly proportional to the magnitude of a tornado.
 
 We developed to models for the linear regression: a pooled model and a hierarchical model. The pooled model can be applied if the injuries are considered to be identically and independently distributed between the states. The hierarchical model allows the injuries to be dependent on the state of the tornado's occurrence.
 
-Let $x_{ij}$ be the magnitude of a tornado in state $j$ and $\bar y_{ij}$ be the average of observed injuries caused by tornadoes of magnitude $x_ij$ in certain state. The magnitude of a tornado can have values $\{0,1,2,3,4,5\}$. However, tornadoes of magnitude 5 are very rare. Additionally, tornadoes occur in some states altogether only few times. We decided to filter the data such that we have the observations of the states where tornadoes of magnitude 0-4 have occurred at least once, which is totally 32 states.
+Let $x_{ij}$ be the magnitude of a tornado in state $j$ and $\bar y_{ij}$ be the average of observed injuries caused by tornadoes of magnitude $x_{ij}$ in certain state. The magnitude of a tornado can have values $\{0,1,2,3,4,5\}$. However, tornadoes of magnitude 5 are very rare. Additionally, tornadoes occur in some states altogether only few times. We decided to filter the data such that we have the observations of the states where tornadoes of magnitude 0-4 have occurred at least once, which is totally 32 states.
 
 ## Pooled model
 
@@ -98,13 +98,13 @@ $$$$
 \sigma \sim \textrm N(5, 100).
 $$ Now for each state, we have own linear average parameters $\alpha_j$ and $\beta_j$ which are defined by normal distribution with hyper parameters $\mu_\alpha$, $\mu_\beta$, $\sigma_\alpha$ and $\sigma_\beta$. The hyper parameters are defined by normal hyper priors. Each of the states however have a common variance $\sigma$.
 
-## Priors
+## 4. Priors
 
 We decided to use weakly informative normal priors for each (hyper) parameter. We tested many different prior distributions and parameters and got decent performance with the chosen normal priors. Some of the other priors caused for example divergence in HMC.
 
 We chose zero centered normal priors with a large standard deviation for parameters $\alpha$, $\beta$, $\mu_\alpha$ and $\mu_\beta$. We believe that the true parameter value would be quite close to zero but the wide prior distribution allows the parameters to converge to afar from zero. For standard deviations $\sigma$, $\sigma_\alpha$ and $\sigma_\beta$, we chose normal priors which had the mean parameter at 5. We believe that there is some variance between the observations so the standard deviation would be larger than zero. Again, the standard deviation of the priors were chosen quite large such that we get a weakly informative prior.
 
-## Code
+## 5/6. Code
 
 The Stan implementations of the models is shown below. The pooled model was implemented as
 ```

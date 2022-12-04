@@ -400,7 +400,7 @@ Predictive performance assessment wasn't conducted for the models because the go
 
 First the sensitivity to priors is tested for the pooled model. Three different priors are tested: 
 
-1. Uniform priors for alpha and beta: $uniform(0, 120)$ \
+1. Uniform priors for alpha and beta: $uniform(0, 100)$ \
 2. Inv_chi_square for sigma: inv_chi_square(0.1) \
 3. Smaller sd for alpha and beta: $normal(mean, 10)$ instead of the previous 100 and 1000 \
 
@@ -544,7 +544,7 @@ Next, sensitivity to priors for the hierarchical model. Since there are so many 
 
 Again, three different priors are tested: 
 
-1. Uniform priors for hyperparameters of alpha and beta: $uniform(0, 120)$ \
+1. Uniform priors for hyperparameters of alpha and beta: $uniform(0, 100)$ \
 2. Inv_chi_square for sigma: inv_chi_square(0.1) \
 3. Smaller sd for hyperparameters of alpha and beta: $normal(mean, 10)$ instead of the previous 100 \
 
@@ -747,3 +747,4 @@ Sometimes models just don't work the way you expect them to. There are so many p
 I learned a lot about plotting with R and how to visualize diagnostics for the models.
 
 ## Leo
+I learned coding in R and developing of Bayesian models in Stan.

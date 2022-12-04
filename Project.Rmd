@@ -11,6 +11,24 @@ output:
 urlcolor: blue
 ---
 
+```{r, include=FALSE}
+library(cmdstanr)
+# If running in Aalto JupyterHub
+set_cmdstan_path('/coursedata/cmdstan')
+options(mc.cores = 1)
+library(posterior)
+library(loo)
+library(tidyr)
+library(dplyr)
+options(pillar.neg=FALSE)
+library(ggplot2)
+library(gridExtra)
+library(bayesplot)
+theme_set(bayesplot::theme_default(base_family = "sans"))
+library(rprojroot)
+SEED <- 48927
+```
+
 # Introduction
 Tornadoes are rotating columns of air that have intrigued mankind for hundreds of years. They occur most numerous in the US where it is estimated that around 1200 tornadoes appear annually. They vary in size and intensity, with the largest, most extreme tornadoes reaching wind speeds of up to 480km/h.
 
@@ -27,10 +45,10 @@ Naturally there are tons of analysises of tornadoes, as they have a huge impact 
 The original dataset had 29 columns and 68829 rows. These were condensed into 3 variables of interest by removing unnecessary fields and averaging injuries by state and magnitude.
 
 ## State
-State tells the state in the US in which the tornado happened. This parameter functions as the grouping in our hierarchical model.
+State tells the state in the US in which the tornado happened. This parameter functioned as the grouping in our hierarchical model.
 
 ## Magnitude
-This is the magnitude of the tornado on the enhanced fujita scale, which is based on the windspeed of the tornade. It is the covariate of our model.
+This is the magnitude of the tornado, which was the covariate of our model. 
 
 ## Averaged injuries
 Averaged injuries is a calculated variable that averages all the injuries by all tornadoes in a certain state and of certain magnitude.
@@ -165,9 +183,9 @@ model {
 ```
 The models were run with the script represented below
 ```{r, results='hide', message=FALSE, warning=FALSE}
-data_pooled <- readRDS(file='~/notebooks/BDA/Project/data_pooled_ver2.Rda')
-data_hx <- readRDS(file='~/notebooks/BDA/Project/data_hierarchical_x_ver2.Rda')
-data_hy <- readRDS(file='~/notebooks/BDA/Project/data_hierarchical_y_ver2.Rda')
+data_pooled <- readRDS(file='./data_pooled_ver2.Rda')
+data_hx <- readRDS(file='./data_hierarchical_x_ver2.Rda')
+data_hy <- readRDS(file='./data_hierarchical_y_ver2.Rda')
 
 # Fit pooled model
 pooled_model <- cmdstan_model(stan_file = "~/notebooks/BDA/Project/pooled_linear_model.stan")
@@ -200,7 +218,7 @@ That is, both models were run in Stan such that they had 4 chains with chain len
 One of the biggest pitfalls of our model was the lack of datapoints for our hierarchical model. Each state had only one average calculation per magnitude, and some magnitudes had no datapoints at all. (Set to zero in that case) This problem naturally did not occur the same way in pooled, hence why chains converged much better with that model.
 The relation between the magnitude and the injuries is not very linear, hence why linear model struggles with the predictions.
 
-A better formulation of our data would have perhaps functioned better than this one. Some model that would have given more datapoints per grouping could have gotten more out of it. That could have potentially fixed the linearity problem as well.
+A better formulation of our data would have perhaps functioned better than the this one. Some model that would have given more datapoints per grouping could have gotten more out of it. That could have potentially fixed the linearity problem as well.
 
 # Conclusion
 

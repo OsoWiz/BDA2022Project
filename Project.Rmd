@@ -214,6 +214,69 @@ fit_hierarchical <- hierarchical_model$sample(data = stan_data, refresh=1000)
 ```
 That is, both models were run in Stan such that they had 4 chains with chain length of 2000 and warm-up length of 1000. With these options, we get overall 4000 draws from the distributions.
 
+## Posterior predictive check
+
+We generated predictive values from the posterior distributions for both models. To make a predictive check, we compare the histograms of the real observed data and predictive data with each magnitude value separately. The observed values and generated draws are collected to data frames `df_y`, `df_p` and `df_h`. The histograms are presented below
+```{r, include=FALSE}
+draws_pool <- as_draws_df(fit_pooled$draws())
+draws_hier <- as_draws_df(fit_hierarchical$draws())
+
+df_y = data.frame(y0 = filter(data_pooled, x==0)$y, y1=filter(data_pooled, x==1)$y, y2=filter(data_pooled, x==2)$y, y3=filter(data_pooled, x==3)$y, y4=filter(data_pooled, x==4)$y)
+
+y0 <- draws_pool %>%
+  as_draws_df() %>%
+  as_tibble() %>%
+  select(starts_with("ypred[1"))
+y1 <- draws_pool %>%
+  as_draws_df() %>%
+  as_tibble() %>%
+  select(starts_with("ypred[2"))
+y2 <- draws_pool %>%
+  as_draws_df() %>%
+  as_tibble() %>%
+  select(starts_with("ypred[3"))
+y3 <- draws_pool %>%
+  as_draws_df() %>%
+  as_tibble() %>%
+  select(starts_with("ypred[4"))
+y4 <- draws_pool %>%
+  as_draws_df() %>%
+  as_tibble() %>%
+  select(starts_with("ypred[5"))
+df_p <- data.frame(y0=do.call('c',y0), y1=do.call('c', y1),y2=do.call('c',y2),y4=do.call('c', y4),y3=do.call('c',y3))
+
+y0 <- draws_hier %>%
+  as_draws_df() %>%
+  as_tibble() %>%
+  select(starts_with("ypred[1"))
+y1 <- draws_hier %>%
+  as_draws_df() %>%
+  as_tibble() %>%
+  select(starts_with("ypred[2"))
+y2 <- draws_hier %>%
+  as_draws_df() %>%
+  as_tibble() %>%
+  select(starts_with("ypred[3"))
+y3 <- draws_hier %>%
+  as_draws_df() %>%
+  as_tibble() %>%
+  select(starts_with("ypred[4"))
+y4 <- draws_hier %>%
+  as_draws_df() %>%
+  as_tibble() %>%
+  select(starts_with("ypred[5"))
+df_h <- data.frame(y0=do.call('c',y0), y1=do.call('c', y1),y2=do.call('c',y2),y4=do.call('c', y4),y3=do.call('c',y3))
+```
+```{r hist, fig.height=7, fig.width=5, fig.cap="Histograms of real observations, draws from pooled model and draws from hierarchical model for each tornado magnitudes. First two rows are the observed values for tornadoes of magnitude 0-4. Similarly, third and fourth row contain the draws of the pooled model and fifth and sixth row contain the draws of the hierarchical model for tornadoes of magnitude 0-4."}
+yhist <- mcmc_hist(df_y, pars = c('y0', 'y1','y2','y3','y4'))
+phist <- mcmc_hist(df_p, pars = c('y0', 'y1','y2','y3','y4'), binwidth = 30)
+hhist <- mcmc_hist(df_h, pars = c('y0', 'y1','y2','y3','y4'), binwidth = 30)
+grid.arrange(yhist, phist, hhist, nrow = 3)
+```
+As we can see from the plots, the observed data does not have the shape of a normal distribution. However, we can make some deduction of the predictive draws with these histograms. As we can see, the average injuries increase as the magnitude of tornadoes increase. With the smaller magnitudes, the observed injuries were close to zero on average. The predictive draws for both models have the mean value also quite close to zero when the magnitude was small. With magnitudes 3 and 4, the injuries are evidently greater than zero on average by the observations. Again, the models have predicted this and the mean of the distribution is clearly larger. 
+
+Injuries caused by a tornado is a quantity that has only non-negative values. Our predictions however have also negative draws for average injuries. Therefore, we can say that the predictions are not quite optimal with this model.
+
 # Discussion of issues and potential improvements
 One of the biggest pitfalls of our model was the lack of datapoints for our hierarchical model. Each state had only one average calculation per magnitude, and some magnitudes had no datapoints at all. (Set to zero in that case) This problem naturally did not occur the same way in pooled, hence why chains converged much better with that model.
 The relation between the magnitude and the injuries is not very linear, hence why linear model struggles with the predictions.

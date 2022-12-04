@@ -744,5 +744,6 @@ We learned that data analysis is a hard topic to excel at. The key of success is
 Sometimes models just don't work the way you expect them to. There are so many parameters and variables that can be used and considered that an exhaustive analysis is rather difficult.
 
 ## Marilla
+I learned a lot about plotting with R and how to visualize diagnostics for the models.
 
 ## Leo

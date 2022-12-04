@@ -684,7 +684,7 @@ From the plots, it can be seen that the hierarchical model is perhaps a bit less
 
 
 
-## Model comparison with LOO-CV
+## 11. Model comparison with LOO-CV
 
 Pooled model: PSIS-LOO elpd values and the $\hat{k}$-values
 ```{r warning=FALSE}
@@ -727,19 +727,19 @@ comp_p_to_h
 
 The results show that model2, meaning the hierarchical model, has higher PSIS-LOO and thus should be selected if it were the only thing to consider. However, the pareto k values make the reliability of the PSIS-LOO estimate for the hierarchical model questionable. Considering that this model also had some convergence issues, the pooled model might be a better choice.
 
-# Discussion of issues and potential improvements
+# 12. Discussion of issues and potential improvements
 One of the biggest pitfalls of our model was the lack of datapoints for our hierarchical model. Each state had only one average calculation per magnitude, and some magnitudes had no datapoints at all. (Set to zero in that case) This problem naturally did not occur the same way in pooled, hence why chains converged much better with that model.
 The relation between the magnitude and the injuries is not very linear, hence why linear model struggles with the predictions.
 
 A better formulation of our data would have perhaps functioned better than the this one. Some model that would have given more datapoints per grouping could have gotten more out of it. That could have potentially fixed the linearity problem as well.
 
-# Conclusion
+# 13. Conclusion
 
 We made two linear regression models that were applied in predictions of average injuries caused by a tornado. We noticed that the simple linear regression models were not fully able to predict the injuries. Extreme phenomena needs extremely well developed models for proper predictions.
 
 However, we made two working models which could predict some of the qualities of the problem. For example, the linear model predicted that the injuries increase as the magnitude of a tornado grows. Therefore with a little development, the model could probably make somewhat plausible predictions.
 
-# Self-reflection
+# 14. Self-reflection
 
 We learned that data analysis is a hard topic to excel at. The key of success is to find proper mathematical models such as correct probability distribution to represent the data. Additionally, the choice of priors, hierarchy in models and covariate selection can major vast effect on the results obtained in the analysis. We believe that the injuries caused by a tornado could be predicted properly with a better model. Thus, research in tornadoes and bayesian inference should be continued.
 
